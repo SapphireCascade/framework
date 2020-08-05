@@ -390,6 +390,9 @@
 						$variables = preg_replace("/(?:^{{[ ]*)|(?:[ ]*}}$)/","",$variables);
 						cochToPhp($variables);
 						$result = evaluate("$variables",$data);
+						$result = str_replace("&", "&amp;", $result);
+						$result = str_replace("<", "&lt;", $result);
+						$result = str_replace(">", "&gt;", $result);
 						$result = substr($result,1,-1);
 						$page = preg_replace(strToRegex($match),$result,$page,1);
 					}
