@@ -132,7 +132,7 @@
 	}
 
 	function speed($message="",$accuracy=2){
-		if(isset($GLOBALS["time"])){
+		if(isset($GLOBALS["time"])&&$message!=""){
 			$difference = round(microtime(true)-$GLOBALS["time"],$accuracy);
 			echo $message . " - " .$difference."s<br>";
 		}
