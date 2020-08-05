@@ -131,7 +131,7 @@
 		return $decrypted;
 	}
 
-	function speed($message,$accuracy=2){
+	function speed($message="",$accuracy=2){
 		if(isset($GLOBALS["time"])){
 			$difference = round(microtime(true)-$GLOBALS["time"],$accuracy);
 			echo $message . " - " .$difference."s<br>";
