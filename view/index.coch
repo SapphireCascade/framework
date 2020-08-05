@@ -1,0 +1,1 @@
+<p>{{ content.string_test }}</p>
