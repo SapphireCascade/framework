@@ -422,7 +422,8 @@
 		$text = str_replace(">", "&gt;", $text);
 		return $text;
 	}
-	function cochRaw($text){
+	function cochRaw($item_list){
+		$text = $item_list[0];
 		$text = str_replace("\\","\\\\",$text);
 		$text = str_replace("/","//",$text);
 		$text = str_replace("\\","\\/",$text);
@@ -430,6 +431,10 @@
 		$text = str_replace("<","\\<",$text);
 		$text = str_replace(">","\\>",$text);
 		return $text;
+	}
+	function cochSubstr($item_list){
+		$text = $item_list[0];
+		return substr($text,$item_list[1],$item_list[2]);
 	}
 	function generateSalt(){
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -460,20 +465,29 @@
 		$count=1;
 		$function_list = array();
 		$variable_list = array();
-		while(preg_match("/([a-z][a-zA-Z_\.0-9]*)(?:\|([a-zA-Z]+))?(?=(?:[^\(a-zA-Z_\.0-9]|$))/",$conjunction,$variable)){
+		while(preg_match("/([a-z][a-zA-Z_\.0-9]*)(?:\|([a-zA-Z]+)(?:\(([^\(]*)\))?)?(?=(?:[^\(a-zA-Z_\.0-9]|$))/",$conjunction,$variable)){
 			if($variable[2]){
-				$function_list[$variable[1]] = $variable[2];
-				$conjunction = str_replace("|".$variable[2], "", $conjunction);
+				$replace = $variable[2];
+				$function_list[$count] = array($variable[1],$variable[2]);
+				if($variable[3]){
+					$replace .="(".$variable[3].")";
+					$function_list[$count][] = $variable[3];
+				}
+				$conjunction = str_replace("|".$replace, "", $conjunction);
 			}
 			$conjunction = str_replace($variable[1],"\\".$count."\\",$conjunction);
 			$count+=2;
 			$variable_list[] = $variable[1];
 		}
 		$count = 1;
-		foreach($variable_list as $index=>$variable){
+		foreach($variable_list as $variable){
 			$php_string = "$".$main_name."[\"".str_replace(".","\"][\"",$variable)."\"]";
-			if(isset($function_list[$variable])&&$function_list[$variable]){
-				$php_string = "coch".ucfirst($function_list[$variable])."(".$php_string.")";
+			if(isset($function_list[$count])&&$function_list[$count]){
+				$arguments = explode(",",$function_list[$count][2]);
+				foreach($arguments as $arguement){
+					$php_string.=",".cochToPhp($arguement);
+				}
+				$php_string = "coch".ucfirst($function_list[$count][1])."(".$php_string.")";
 			}
 			$conjunction = str_replace("\\".$count."\\",$php_string,$conjunction);
 			$count+=2;
@@ -486,9 +500,9 @@
 		return $conjunction;
 	}
 	function evaluate($expression,$data,$string_list=array(),$return_array=false){
-		while(preg_match("/(?:\"[\s\S]*?[^\\\\]\")|(?:\'[\s\S]*?[^\\\\]\')/",$expression,$string)){
+		while(preg_match("/(?:\"([\s\S]*?[^\\\\])\")|(?:\'([\s\S]*?[^\\\\])\')/",$expression,$string)){
 			$expression = str_replace($string[0],"\\".count($string_list)."\\",$expression);
-			$string_list[] = $string[0];
+			$string_list[] = $string[1];
 		}
 		$item_list = array();
 		preg_match_all("/\(|\)/",$expression,$bracket_list, PREG_OFFSET_CAPTURE);
@@ -512,10 +526,19 @@
 		$string_difference = 0;
 		foreach($bracket_range as $bracket_position){
 			$search = substr($expression,$bracket_position[0]-$string_difference,$bracket_position[1]-$bracket_position[0]);
-			$replace = evaluate(substr($search,1,-1),$data,$string_list);
+			$search_text = substr($search,1,-1);
+			$search_array = explode(",",$search_text);
+			$replace = "";
+			foreach($search_array as $index=>$item){
+				if($replace!=""){
+					$replace.=",";
+				}
+				$replace .= evaluate($item,$data,$string_list);
+			}
 			if(preg_match("/([a-zA-Z0-9]+)".strToRegex($search,false)."/", $expression, $function)){
+				$item_list = explode(",",$replace);
 				$placeholder = "\\".count($string_list)."\\";
-				$string_list[] = call_user_func($function[1],$replace);
+				$string_list[] = call_user_func($function[1],$item_list);
 				$replace = $placeholder;
 				$search = $function[0];
 			}
@@ -525,7 +548,7 @@
 		preg_match_all("/\[(\\\\([\d]+)\\\\)\]/", $expression,$string_identity_list);
 		foreach($string_identity_list[1] as $index=>$search){
 			$id = $string_identity_list[2][$index];
-			$replace = $string_list[$id];
+			$replace = "\"".$string_list[$id]."\"";
 			$expression = str_replace($search,$replace,$expression);
 		}
 		preg_match_all("/\\$[a-zA-Z][a-zA-Z0-9_]*(?:\[(?:[\d]+|'[a-zA-Z0-9_]*'|\"[a-zA-Z0-9_]*\")\])*/",$expression,$variable_list);
@@ -584,8 +607,12 @@
 				$expression = str_replace($equation[0],evaluate($equation[1])*evaluate($equation[3]),$expression);
 			}
 		}
-		while(preg_match("/([^~]+?)([~])([~]+)$/",$expression,$equation)){
-			$expression = str_replace($equation[0],evaluate($equation[1]).evaluate($equation[3]),$expression);
+		while(preg_match("/([\s\S]+?)[\s]*~[\s]*([\s\S]+)/",$expression,$equation)){
+			$first_append = evaluate($equation[1],$data,$string_list);
+			$second_append = evaluate($equation[2],$data,$string_list);
+			$expression = str_replace($equation[0],$first_append.$second_append,$expression);
+			$replace.=evaluate($equation[1][$index],$data,$string_list);
+			$expression = str_replace($equation[0],$replace,$expression);
 		}
 		if(count($string_list)){
 			preg_match_all("/\\\\([\d]+)\\\\/", $expression,$end_string_identity_list);
