@@ -432,6 +432,32 @@
 		$text = str_replace(">","\\>",$text);
 		return $text;
 	}
+	function cochRainbow($item_list){
+		$colors = array("red","orange","yellow","green","blue","purple");
+		$text = $item_list[0];
+		$count = 0;
+		$color = 0;
+		$output="";
+		while($count<strlen($text)){
+			if($text[$count]==" "){
+				$output.=$text[$count];
+				$count++;
+				continue;
+			}
+			$start = cochRaw(array("<span style='color:".$colors[$color%6]."'>"));
+			$end = cochRaw(array("</span>"));
+			$output.=$start.$text[$count].$end;
+			$count++;
+			$color++;
+		}
+		return $output;
+	}
+	function cochUcwords($item_list){
+		return ucwords($item_list[0]);
+	}
+	function cochStrtoupper($item_list){
+		return strtoupper($item_list[0]);
+	}
 	function cochSubstr($item_list){
 		$text = $item_list[0];
 		return substr($text,$item_list[1],$item_list[2]);
