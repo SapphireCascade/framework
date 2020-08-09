@@ -466,6 +466,10 @@
 			return substr($text,$item_list[1]);
 		}
 	}
+	function cochStrlen($item_list){
+		$text = $item_list[0];
+		return strlen($text);
+	}
 	function generateSalt(){
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$charactersLength = strlen($characters);
