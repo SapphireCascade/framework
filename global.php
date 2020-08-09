@@ -460,7 +460,11 @@
 	}
 	function cochSubstr($item_list){
 		$text = $item_list[0];
-		return substr($text,$item_list[1],$item_list[2]);
+		if(isset($item_list[2])){
+			return substr($text,$item_list[1],$item_list[2]);
+		} else {
+			return substr($text,$item_list[1]);
+		}
 	}
 	function generateSalt(){
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
