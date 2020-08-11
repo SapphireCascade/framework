@@ -20,12 +20,6 @@
 			header("Location: http://".settings("MAIN_SITE_URL"));
 		}
 	}
-	// if($_SERVER["REQUEST_URI"]!="/"&&!isset($_COOKIE["login_id"])&&$_SERVER["REQUEST_URI"]!="/tandc"&&$_SERVER["REQUEST_URI"]!="/login/login"&&$_SERVER["REQUEST_URI"]!="/signup/signup"){
-	// 	if(!isset($_SESSION["return_url"])||!$_SESSION["return_url"]){
-	// 		$_SESSION["return_url"] = $_SERVER["REQUEST_URI"];
-	// 	}
-	// 	header("Location: /");
-	// }
 	function settings($name="",$value=false){
 		if($name===""){
 			return $GLOBALS["settings"];
@@ -862,7 +856,7 @@
 	function sqlGetConnection(){
 		if(isset($GLOBALS["connection"])){
 			return $GLOBALS["connection"];
-		} else {
+		} else if (settings("DB_SERVER_NAME")) {
 			$servername = settings("DB_SERVER_NAME");
 			$username=settings("DB_USERNAME");
 			$password=settings("DB_PASSWORD");
@@ -870,6 +864,8 @@
 			$connection = mysqli_connect($servername, $username, $password, $db_name);
 			$GLOBALS["connection"] = $connection;
 			return $connection;
+		} else {
+			return false;
 		}
 	}
 	function sql($sql, $object=array()){
@@ -881,6 +877,9 @@
 			$return_id = true;
 		}
 		$conn = sqlGetConnection();
+		if($conn===false){
+			return array();
+		}
 		if(count($object)){
 			$stmt = $conn->prepare($sql);
 			if(!function_exists("types")){

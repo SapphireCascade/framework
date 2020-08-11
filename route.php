@@ -107,7 +107,7 @@
 	} catch(Throwable $e){
 		if(isSelf()){
 			echo "<h1>Error</h1><br/>".$e->getMessage()." at ".$e->getFile()." on Line: ".$e->getLine();
-		} else {
+		} elseif(settings("DB_SERVER_NAME")) {
 			$message = $e->getMessage()." at ".$e->getFile()." on Line: ".$e->getLine();
 			$message = str_replace("'","\'",$message);
 			$previous = sqlGetBy("error_log",array("message"=>str_replace("'","\'",$message)));
@@ -117,7 +117,9 @@
 				$error_code = generateRandomString(30);
 				sqlInsert("error_log",array("error_code"=>$error_code,"message"=>$message));
 			}
-			echo "<h1>An error has occured</h1><br/><h2>Please contact ".$_GLOBALS["ERROR_NAME"]." using error code: ".$error_code." for assistance</h2>";
+			echo "<h1>An error has occured</h1><br/><h2>Please contact ".settings("ERROR_NAME")." using error code: ".$error_code." for assistance</h2>";
+		} else {
+			echo "<h1>An error has occured</h1><br/><h2>Please contact ".settings("ERROR_NAME")." describing how you got this error.";
 		}
 		exit;
 	}
