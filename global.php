@@ -451,8 +451,10 @@
 			if($printing&&($text[$count]!="\\"||$previous=="\\")){
 				$start = cochRaw(array("<span style='color:".$colors[$color%6]."'>"));
 				$end = cochRaw(array("</span>"));
-				$output.=$start.$text[$count].$end;
 				$color++;
+				$output.=$start.$text[$count].$end;
+			} else {
+				$output.=$text[$count];
 			}
 			if($text[$count]==">"){
 				$printing = true;
@@ -487,8 +489,9 @@
 	}
 	function cochBold($item_list){
 		$text = $item_list[0];
-		$bold_tag = cochRaw("<b>");
-		return $bold_tag.$text.$bold_tag;
+		$start_bold_tag = cochRaw("<b>");
+		$end_bold_tag = cochRaw("</b>");
+		return $start_bold_tag.$text.$end_bold_tag;
 	}
 	function generateSalt(){
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
