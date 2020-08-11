@@ -1,1 +1,2 @@
 <p>{{ content.string_test }}</p>
+<p>{{ content.current_date|date("c")|bold|rainbow }}</p>

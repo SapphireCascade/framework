@@ -391,6 +391,7 @@
 						$variables = preg_replace("/(?:^{{[ ]*)|(?:[ ]*}}$)/","",$variables);
 						cochToPhp($variables);
 
+
 						$result = evaluate("$variables",$data);
 						$result = str_replace("&", "&amp;", $result);
 						$result = str_replace("<", "&lt;", $result);
@@ -423,7 +424,11 @@
 		return $text;
 	}
 	function cochRaw($item_list){
-		$text = $item_list[0];
+		if(is_array($item_list)){
+			$text = $item_list[0];
+		} else {
+			$text = $item_list;
+		}
 		$text = str_replace("\\","\\\\",$text);
 		$text = str_replace("/","//",$text);
 		$text = str_replace("\\","\\/",$text);
@@ -438,17 +443,28 @@
 		$count = 0;
 		$color = 0;
 		$output="";
+		$previous = "";
+		$printing = true;
 		while($count<strlen($text)){
 			if($text[$count]==" "){
 				$output.=$text[$count];
 				$count++;
 				continue;
 			}
-			$start = cochRaw(array("<span style='color:".$colors[$color%6]."'>"));
-			$end = cochRaw(array("</span>"));
-			$output.=$start.$text[$count].$end;
+			if($text[$count]=="<"){
+				$printing = false;
+			}
+			if($printing&&($text[$count]!="\\"||$previous=="\\")){
+				$start = cochRaw(array("<span style='color:".$colors[$color%6]."'>"));
+				$end = cochRaw(array("</span>"));
+				$output.=$start.$text[$count].$end;
+				$color++;
+			}
+			if($text[$count]==">"){
+				$printing = true;
+			}
+			$previous = $text[$count];
 			$count++;
-			$color++;
 		}
 		return $output;
 	}
@@ -469,6 +485,16 @@
 	function cochStrlen($item_list){
 		$text = $item_list[0];
 		return strlen($text);
+	}
+	function cochDate($item_list){
+		$text = $item_list[0];
+		$format = $item_list[1];
+		return date($format,$text);
+	}
+	function cochBold($item_list){
+		$text = $item_list[0];
+		$bold_tag = cochRaw("<b>");
+		return $bold_tag.$text.$bold_tag;
 	}
 	function generateSalt(){
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -499,16 +525,13 @@
 		$count=1;
 		$function_list = array();
 		$variable_list = array();
-		while(preg_match("/([a-z][a-zA-Z_\.0-9]*)(?:\|([a-zA-Z]+)(?:\(([^\(]*)\))?)?(?=(?:[^\(a-zA-Z_\.0-9]|$))/",$conjunction,$variable)){
-			if($variable[2]){
-				$replace = $variable[2];
-				$function_list[$count] = array($variable[1],$variable[2]);
-				if($variable[3]){
-					$replace .="(".$variable[3].")";
-					$function_list[$count][] = $variable[3];
-				}
-				$conjunction = str_replace("|".$replace, "", $conjunction);
+		while(preg_match("/([a-z][a-zA-Z_\.0-9]*)(?:\|[a-zA-Z]+(?:\([^\(]*\))?)*(?=(?:[^\(a-zA-Z_\.0-9]|$))/",$conjunction,$variable)){
+			$function_list[$count] = array($variable[1],"function_list"=>array());
+			while(preg_match("/\|([a-zA-Z]+)(?:\(([^\(]*)\))?$/", $conjunction,$function)){
+				$conjunction = preg_replace("/\|([a-zA-Z]+)(?:\(([^\(]*)\))?$/", "", $conjunction);
+				$function_list[$count]["function_list"][$function[1]] = $function[2];
 			}
+			$function_list[$count]["function_list"] = array_reverse($function_list[$count]["function_list"]);
 			$conjunction = str_replace($variable[1],"\\".$count."\\",$conjunction);
 			$count+=2;
 			$variable_list[] = $variable[1];
@@ -517,11 +540,15 @@
 		foreach($variable_list as $variable){
 			$php_string = "$".$main_name."[\"".str_replace(".","\"][\"",$variable)."\"]";
 			if(isset($function_list[$count])&&$function_list[$count]){
-				$arguments = explode(",",$function_list[$count][2]);
-				foreach($arguments as $arguement){
-					$php_string.=",".cochToPhp($arguement);
+				foreach($function_list[$count]["function_list"] as $name=>$arguments){
+					$arguments = explode(",", $arguments);
+					if($arguments[0]!=""){
+						foreach($arguments as $arguement){
+							$php_string.=",".cochToPhp($arguement);
+						}
+					}
+					$php_string = "coch".ucfirst($name)."(".$php_string.")";
 				}
-				$php_string = "coch".ucfirst($function_list[$count][1])."(".$php_string.")";
 			}
 			$conjunction = str_replace("\\".$count."\\",$php_string,$conjunction);
 			$count+=2;
@@ -569,8 +596,30 @@
 				}
 				$replace .= evaluate($item,$data,$string_list);
 			}
-			if(preg_match("/([a-zA-Z0-9]+)".strToRegex($search,false)."/", $expression, $function)){
-				$item_list = explode(",",$replace);
+			if(preg_match("/([a-zA-Z][a-zA-Z0-9]*)(".strToRegex($search,false).")/", $expression, $function)){
+				$parameters = substr($function[2],1,-1);
+				$bracket_level = 0;
+				$str_length = strlen($parameters);
+				$item_list = array();
+				$item = "";
+				for($i=0;$i<$str_length;$i++){
+					if($parameters[$i]=="("){
+						$bracket_level++;
+					}
+					if($parameters[$i]==")"){
+						$bracket_level--;
+					}
+					if($parameters[$i]==","&&$bracket_level==0){
+						$item_list[] = $item;
+						$item="";
+					} else {
+						$item.=$parameters[$i];
+					}
+				}
+				$item_list[] = $item;
+				foreach($item_list as $index=>$item){
+					$item_list[$index] = evaluate($item,$data,$string_list);
+				}
 				$placeholder = "\\".count($string_list)."\\";
 				$string_list[] = call_user_func($function[1],$item_list);
 				$replace = $placeholder;
@@ -667,16 +716,20 @@
 		$expression = str_replace("\\", "\\\\", $expression);
 		$expression = str_replace(".","\\.",$expression);
 		$expression = str_replace("/","\\/",$expression);
-		$expression = str_replace("(","\(",$expression);
-		$expression = str_replace(")","\)",$expression);
+		$expression = str_replace("(","\\(",$expression);
+		$expression = str_replace(")","\\)",$expression);
 		$expression = str_replace("\"","\\\"",$expression);
 		$expression = str_replace("?", "\\?", $expression);
 		$expression = str_replace("*","\\*",$expression);
+		$expression = str_replace("+", "\\+", $expression);
 		$expression = str_replace("[","\\[",$expression);
 		$expression = str_replace("]","\\]",$expression);
 		$expression = str_replace("|","\\|",$expression);
 		$expression = str_replace("$","\\$",$expression);
 		$expression = str_replace("^","\\^",$expression);
+		$expression = str_replace("-","\\-",$expression);
+		$expression = str_replace("{","\\{",$expression);
+		$expression = str_replace("}","\\}",$expression);
 		if($slashes){
 			$expression ="/".$expression."/";
 		}
