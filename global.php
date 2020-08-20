@@ -20,6 +20,12 @@
 			header("Location: http://".settings("MAIN_SITE_URL"));
 		}
 	}
+	if(settings("REQUIRE_LOGIN")&&(!in_array($_SERVER["REQUEST_URI"], settings("LOGIN_NOT_REQUIRED"))&&!isset($_COOKIE["login_id"]))){
+		if(!isset($_SESSION["return_url"])||!$_SESSION["return_url"]){
+			$_SESSION["return_url"] = $_SERVER["REQUEST_URI"];
+		}
+		header("Location: ".settings("LOGIN_REDIRECT"));
+	}
 	function settings($name="",$value=false){
 		if($name===""){
 			return $GLOBALS["settings"];
@@ -432,7 +438,17 @@
 		return $text;
 	}
 	function cochRainbow($item_list){
-		$colors = array("red","orange","yellow","green","blue","purple");
+		$colors = array();
+		if(isset($item_list[1])){
+			foreach($item_list as $index=>$item){
+				if($index==0){
+					continue;
+				}
+				$colors[] = $item;
+			}
+		} else {
+			$colors = array("red","orange","yellow","green","blue","purple");
+		}
 		$text = $item_list[0];
 		$count = 0;
 		$color = 0;
@@ -449,7 +465,7 @@
 				$printing = false;
 			}
 			if($printing&&($text[$count]!="\\"||$previous=="\\")){
-				$start = cochRaw(array("<span style='color:".$colors[$color%6]."'>"));
+				$start = cochRaw(array("<span style='color:".$colors[$color%count($colors)]."'>"));
 				$end = cochRaw(array("</span>"));
 				$color++;
 				$output.=$start.$text[$count].$end;
@@ -484,7 +500,11 @@
 	}
 	function cochDate($item_list){
 		$text = $item_list[0];
-		$format = $item_list[1];
+		if(isset($item_list[1])){
+			$format = $item_list[1];
+		} else {
+			$format = "d/m/Y";
+		}
 		return date($format,$text);
 	}
 	function cochBold($item_list){
