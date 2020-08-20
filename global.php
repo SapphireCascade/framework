@@ -20,7 +20,7 @@
 			header("Location: http://".settings("MAIN_SITE_URL"));
 		}
 	}
-	if(settings("REQUIRE_LOGIN")&&(!in_array($_SERVER["REQUEST_URI"], settings("LOGIN_NOT_REQUIRED"))&&!isset($_COOKIE["login_id"]))){
+	if(settings("REQUIRE_LOGIN")=="true"&&(!in_array($_SERVER["REQUEST_URI"], settings("LOGIN_NOT_REQUIRED"))&&!isset($_COOKIE["login_id"]))){
 		if(!isset($_SESSION["return_url"])||!$_SESSION["return_url"]){
 			$_SESSION["return_url"] = $_SERVER["REQUEST_URI"];
 		}
