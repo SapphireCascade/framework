@@ -337,7 +337,7 @@
 						$phy_var = $phy_var[$target];
 					}
 					$for_loop_finish="";
-					$requirement = cochToPhp($variables[3],"parse_data")?:"true";
+					$requirement = $variables[3]?:"true";
 					$data["loop"]["index"] = 1;
 					$data["loop"]["index0"] = 0;
 					$data["loop"]["length"] = count($phy_var);
@@ -483,6 +483,9 @@
 		}
 		preg_match_all("/(([a-z0-9])[a-zA-Z0-9\._]*)((?:\|[a-zA-Z0-9_]+(?:\([^)]*\))?)*)/", $expression, $variable_list);
 		foreach($variable_list[0] as $variable_index=>$variable){
+			if($variable=="true"||$variable=="false"){
+				continue;
+			}
 			if(preg_match("/[a-z]/", $variable_list[2][$variable_index])){
 				$location = explode(".",$variable_list[1][$variable_index]);
 				$value = $data;
