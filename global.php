@@ -518,7 +518,12 @@
 						if(isset($section_list[2])&&$section_list[2]){
 							$second_param_list = explode(",",$section_list[2]);
 							foreach($second_param_list as $second_param){
-								$param_list[] = evaluate($second_param,$data,$string_list);
+								preg_match("/(?:([^=]*)=)?([\s\S]+)$/",$second_param,$assigning);
+								if($assigning[1]){
+									$param_list[$assigning[1]] = evaluate($assigning[2],$data,$string_list);
+								} else {
+									$param_list[] = evaluate($assigning[2],$data,$string_list);;
+								}
 							}
 						}
 						$value = call_user_func("coch".ucfirst($section_list[1]),$param_list);
@@ -677,6 +682,18 @@
 		$start_bold_tag = cochRaw("<b>");
 		$end_bold_tag = cochRaw("</b>");
 		return $start_bold_tag.$text.$end_bold_tag;
+	}
+	function cochTrim($item_list){
+		$text = $item_list[0];
+		$side = $item_list[2]??$item_list["side"]??"both";
+		$remove = $item_list[1]??" \t\n\r\0\x0B";
+		if($side=="left"){
+			return ltrim($text,$remove);
+		} elseif($side=="right"){
+			return rtrim($text,$remove);
+		} else {
+			return trim($text,$remove);
+		}
 	}
 	function generateSalt(){
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
