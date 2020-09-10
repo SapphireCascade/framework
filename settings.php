@@ -16,5 +16,6 @@
 		settings("EMAIL_ADDRESS_FROM", "");
 		settings("EMAIL_NAME_FROM", "");
 		settings("ERROR_NAME", "");// Who to contact when the user sees an error
+		settings("ADDITIONAL_PASSWORD_KEY",getenv(""));//makes passwords more secure, don't delete environmental variable otherwise everyone will have to reset their password
 	}
 ?>

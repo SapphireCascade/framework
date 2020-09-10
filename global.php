@@ -704,14 +704,16 @@
 		}
 		return '$2a$07$'.$randomString.'$';
 	}
-	function generateRandomString($length = 10) {
-	    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
+	function generateRandomString($length = 10,$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_') {
 	    $charactersLength = strlen($characters);
 	    $randomString = '';
 	    for ($i = 0; $i < $length; $i++) {
 	        $randomString .= $characters[rand(0, $charactersLength - 1)];
 	    }
 	    return $randomString;
+	}
+	function generateRandomStringComplex($length=10){
+		return generateRandomString($length,$characters= '`1!2"34$5%6^7&8*9(0)-_=+	qQwWeErRtTyYuUiIoOpP[{]}aAsSdDfFgGhHjJkKlL;:\'@#~\\|zZxXcCvVbBnNmM,<.>/? ');
 	}
 	function strToRegex($expression,$slashes=true){
 		$expression = str_replace("\\", "\\\\", $expression);
@@ -743,7 +745,7 @@
 		if(isset($_COOKIE["login_id"])) {
 			$salt = $_COOKIE["salt"];
 			$login_id = $_COOKIE["login_id"];
-			$current_login = sqlGetBy("logins",array("loginid"=>crypt($login_id,$salt)))[0];
+			$current_login = sqlGetBy("logins",array("loginid"=>crypt($login_id.settings("ADDITIONAL_PASSWORD_KEY"),$salt)))[0];
 			if($current_login){
 				$user = $current_login["users"];
 				$user["encryption_key"] = $current_login["encryption_key"];
